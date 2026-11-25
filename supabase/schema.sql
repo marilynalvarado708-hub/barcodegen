@@ -60,6 +60,14 @@ alter table public.generations  enable row level security;
 revoke all on public.users, public.balances, public.transactions, public.generations
   from anon, authenticated;
 
+-- The server connects as service_role. Grant it access explicitly: projects that
+-- do not auto-expose new tables would otherwise fail with
+-- "42501 permission denied for table users".
+grant usage on schema public to service_role;
+grant select, insert, update, delete
+  on public.users, public.balances, public.transactions, public.generations
+  to service_role;
+
 -- create_user: user + welcome balance + welcome transaction in one transaction.
 -- Raises unique_violation (23505) if the email is already registered.
 create or replace function public.create_user(
