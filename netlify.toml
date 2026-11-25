@@ -1,0 +1,8 @@
+# Netlify build settings. Netlify's Next.js adapter (OpenNext) is applied
+# automatically; API routes run as Netlify Functions.
+# Set JWT_SECRET, SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in
+# Site configuration -> Environment variables (scope must include Functions).
+
+[build]
+  command = "npm run build"
+  publish = ".next"
