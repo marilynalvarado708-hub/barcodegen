@@ -1,11 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import {
-  adjustBalance,
-  getBalance,
-  recordGeneration,
-  recordTransaction,
-} from "@/lib/db";
+import { adjustBalance, recordGeneration } from "@/lib/db";
 import { AppError, handleError } from "@/lib/app-error";
 
 export const dynamic = "force-dynamic";
@@ -17,13 +12,14 @@ export async function POST(req: Request) {
     const user = await getSession();
     if (!user) throw new AppError("Unauthorized", 401);
 
-    const { amount = CREDIT_COST, reference, studio, format } =
-      (await req.json()) ?? {};
-
-    const balance = await getBalance(user.id);
-    if (balance < amount) {
-      throw new AppError("Insufficient credits", 402);
-    }
+    // The cost is fixed on the server; never trust an amount sent by the client.
+    const amount = CREDIT_COST;
+    const body = (await req.json().catch(() => ({}))) ?? {};
+    const str = (v: unknown, max: number) =>
+      typeof v === "string" && v.trim() ? v.trim().slice(0, max) : undefined;
+    const reference = str(body.reference, 64);
+    const studio = str(body.studio, 32);
+    const format = str(body.format, 64);
 
     const charged = await adjustBalance(
       user.id,
@@ -32,6 +28,9 @@ export async function POST(req: Request) {
       reference || "generation",
     );
     if (!charged.ok) {
+      if (charged.error === "insufficient_tokens") {
+        throw new AppError("Insufficient credits", 402);
+      }
       throw new AppError(charged.error || "Credit charge failed", 400);
     }
 
@@ -41,13 +40,6 @@ export async function POST(req: Request) {
       format: format ?? "unknown",
       tokens: -amount,
     });
-    await recordTransaction(
-      user.id,
-      "debit",
-      amount,
-      charged.balance,
-      reference || "generation",
-    );
 
     return NextResponse.json({ ok: true, balance: charged.balance });
   } catch (e: any) {

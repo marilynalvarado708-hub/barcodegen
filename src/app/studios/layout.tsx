@@ -21,10 +21,12 @@ export default function StudiosLayout({
   const [collapsed, setCollapsed] = React.useState(false);
 
   return (
-    <div className="flex h-screen flex-col lg:flex-row overflow-hidden">
+    <div className="flex flex-col lg:flex-row">
+      {/* Desktop only: on mobile the top navbar menu already lists the studios.
+          Sticks just below the 61px top navbar. */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 w-20 lg:relative lg:static lg:w-64 border-r border-border bg-card transition-width duration-200 ${
-          collapsed ? "lg:w-16 w-16" : ""
+        className={`hidden lg:flex lg:flex-col lg:self-start lg:sticky lg:top-[61px] lg:h-[calc(100vh-61px)] shrink-0 border-r border-border bg-card transition-[width] duration-200 ${
+          collapsed ? "lg:w-16" : "lg:w-64"
         }`}
       >
         <div className="flex h-12 items-center justify-between px-3 border-b border-border">
@@ -75,7 +77,7 @@ export default function StudiosLayout({
           )}
         </div>
       </aside>
-      <div className="flex-1 overflow-y-auto bg-background/50">
+      <div className="flex-1 min-w-0 bg-background/50">
         <main className="p-4 lg:p-6">{children}</main>
       </div>
     </div>

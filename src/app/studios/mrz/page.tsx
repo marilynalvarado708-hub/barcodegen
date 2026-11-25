@@ -75,7 +75,7 @@ export default function MrzPage() {
   const onSubmit = async (data: z.infer<typeof schema>) => {
     setCreditError("");
     if (balanceLoading || balance == null) {
-      setCreditError("Loading your account…");
+      setCreditError(balanceLoading ? "Loading your account…" : "Please sign in to use this studio.");
       return;
     }
     if (balance < 1) {
@@ -211,7 +211,7 @@ export default function MrzPage() {
             disabled={generating || balance == null || balance < 1}
             className="w-full md:w-auto"
           >
-            {generating ? "Generating…" : balance == null ? "Loading account…" : balance < 1 ? "Insufficient credits" : "Generate MRZ"}
+            {generating ? "Generating…" : balance == null ? (balanceLoading ? "Loading account…" : "Sign in to generate") : balance < 1 ? "Insufficient credits" : "Generate MRZ"}
           </Button>
           <Button type="button" variant="outline" onClick={reset} disabled={!result}>
             <RefreshCw className="mr-2 h-4 w-4" /> Reset

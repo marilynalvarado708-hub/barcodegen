@@ -1,5 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
+import { AppError } from "@/lib/app-error";
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const USERS_FILE = path.join(DATA_DIR, "users.json");
@@ -62,14 +63,16 @@ function readJson<T>(file: string, fallback: T): T {
 // other's read-modify-write updates (file-based store is single-writer).
 const writeQueue = (() => {
   let chain: Promise<unknown> = Promise.resolve();
-  return <T>(op: () => T): Promise<T> => {
+  return <T>(op: () => T | Promise<T>): Promise<T> => {
     const result = chain.then(op);
-    chain = result.finally(() => {});
+    chain = result.catch(() => {}); // a failed op must not block later ones
     return result;
   };
 })();
 
-async function withWriteLock<T>(op: () => T): Promise<T> {
+// Run the whole read-modify-write inside the lock. Do not call another locked
+// function from inside `op` (the queue is not re-entrant); use the unlocked helpers.
+async function withWriteLock<T>(op: () => T | Promise<T>): Promise<T> {
   return writeQueue(op);
 }
 
@@ -104,9 +107,10 @@ export async function createUser(
   name: string,
   role: "user" | "admin" = "user"
 ): Promise<User> {
-  const users = await getUsers();
+  return withWriteLock(() => {
+  const users = readJson<User[]>(USERS_FILE, []);
   if (users.find((u) => u.email.toLowerCase() === email.toLowerCase())) {
-    throw new Error("Email already registered");
+    throw new AppError("Email already registered", 409);
   }
   const user: User = {
     id: (globalThis as any).crypto?.randomUUID
@@ -119,13 +123,14 @@ export async function createUser(
     createdAt: new Date().toISOString(),
   };
   users.push(user);
-  await writeJsonLocked(USERS_FILE, users);
+  writeJson(USERS_FILE, users);
   // Initialize token balance
   const balances = readJson<Record<string, number>>(BALANCES_FILE, {});
   balances[user.id] = 10; // welcome credits
-  await writeJsonLocked(BALANCES_FILE, balances);
-  await recordTransaction(user.id, "credit", 10, 10, "welcome");
+  writeJson(BALANCES_FILE, balances);
+  appendTransaction(user.id, "credit", 10, 10, "welcome");
   return user;
+  });
 }
 
 export async function getBalance(userId: string): Promise<number> {
@@ -134,9 +139,11 @@ export async function getBalance(userId: string): Promise<number> {
 }
 
 export async function setBalance(userId: string, amount: number) {
-  const balances = readJson<Record<string, number>>(BALANCES_FILE, {});
-  balances[userId] = Math.max(0, amount);
-  writeJson(BALANCES_FILE, balances);
+  await withWriteLock(() => {
+    const balances = readJson<Record<string, number>>(BALANCES_FILE, {});
+    balances[userId] = Math.max(0, amount);
+    writeJson(BALANCES_FILE, balances);
+  });
 }
 
 export async function adjustBalance(
@@ -145,19 +152,22 @@ export async function adjustBalance(
   type: "credit" | "debit",
   reference: string
 ): Promise<{ ok: boolean; balance: number; error?: string }> {
-  const balances = readJson<Record<string, number>>(BALANCES_FILE, {});
-  const current = balances[userId] ?? 0;
-  const next = current + delta;
-  if (next < 0) {
-    return { ok: false, balance: current, error: "insufficient_tokens" };
-  }
-  balances[userId] = next;
-  await writeJsonLocked(BALANCES_FILE, balances);
-  await recordTransaction(userId, type, Math.abs(delta), next, reference);
-  return { ok: true, balance: next };
+  return withWriteLock(() => {
+    const balances = readJson<Record<string, number>>(BALANCES_FILE, {});
+    const current = balances[userId] ?? 0;
+    const next = current + delta;
+    if (next < 0) {
+      return { ok: false, balance: current, error: "insufficient_tokens" };
+    }
+    balances[userId] = next;
+    writeJson(BALANCES_FILE, balances);
+    appendTransaction(userId, type, Math.abs(delta), next, reference);
+    return { ok: true, balance: next };
+  });
 }
 
 export async function recordGeneration(record: Omit<GenerationRecord, "id" | "createdAt">) {
+  return withWriteLock(() => {
   const history = readJson<GenerationRecord[]>(HISTORY_FILE, []);
   const entry: GenerationRecord = {
     id: (globalThis as any).crypto?.randomUUID
@@ -167,8 +177,9 @@ export async function recordGeneration(record: Omit<GenerationRecord, "id" | "cr
     ...record,
   };
   history.unshift(entry);
-  await writeJsonLocked(HISTORY_FILE, history);
+  writeJson(HISTORY_FILE, history);
   return entry;
+  });
 }
 
 export async function getHistory(userId?: string): Promise<GenerationRecord[]> {
@@ -183,6 +194,19 @@ export async function recordTransaction(
   balanceAfter: number,
   reference: string
 ) {
+  return withWriteLock(() =>
+    appendTransaction(userId, type, amount, balanceAfter, reference)
+  );
+}
+
+// Unlocked: only call while holding the write lock.
+function appendTransaction(
+  userId: string,
+  type: "credit" | "debit",
+  amount: number,
+  balanceAfter: number,
+  reference: string
+): TransactionRecord {
   const txs = readJson<TransactionRecord[]>(TRANSACTIONS_FILE, []);
   const entry: TransactionRecord = {
     id: (globalThis as any).crypto?.randomUUID
@@ -196,7 +220,7 @@ export async function recordTransaction(
     createdAt: new Date().toISOString(),
   };
   txs.unshift(entry);
-  await writeJsonLocked(TRANSACTIONS_FILE, txs);
+  writeJson(TRANSACTIONS_FILE, txs);
   return entry;
 }
 

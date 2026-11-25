@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -8,20 +8,14 @@ import { useAuth } from "@/contexts/AuthContext";
 
 export default function AdminPage() {
   const router = useRouter();
-  const { user } = useAuth();
-  const [ready, setReady] = useState(false);
+  const { user, loading } = useAuth();
 
   useEffect(() => {
-    // AuthProvider already loads the session; once it is ready we can authorize.
-    setReady(true);
-  }, []);
+    // Wait until AuthProvider has finished loading the session before redirecting.
+    if (!loading && !user) router.push("/login?callbackUrl=/admin");
+  }, [loading, user, router]);
 
-  if (!ready) return null;
-
-  if (!user) {
-    router.push("/login");
-    return null;
-  }
+  if (loading || !user) return null;
 
   if (user.role !== "admin") {
     return (

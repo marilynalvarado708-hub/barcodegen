@@ -109,7 +109,7 @@ export default function BarcodePage() {
   const save = async (type: "svg" | "png") => {
     setCreditError("");
     if (balanceLoading || balance == null) {
-      setCreditError("Loading your account…");
+      setCreditError(balanceLoading ? "Loading your account…" : "Please sign in to use this studio.");
       return;
     }
     if (balance < 1) {
@@ -252,6 +252,9 @@ export default function BarcodePage() {
             </div>
             {previewUrl && message && <p className="text-xs text-amber-600">{message}</p>}
             {creditError && <Alert variant="destructive">{creditError}</Alert>}
+            {!balanceLoading && balance == null && (
+              <p className="text-xs text-muted-foreground">Sign in to download PNG or SVG.</p>
+            )}
             <div className="flex flex-wrap gap-2">
               <Button
                 type="button"

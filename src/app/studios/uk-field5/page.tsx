@@ -45,7 +45,7 @@ export default function UkField5Page() {
   const onSubmit = async (data: z.infer<typeof schema>) => {
     setCreditError("");
     if (balanceLoading || balance == null) {
-      setCreditError("Loading your account…");
+      setCreditError(balanceLoading ? "Loading your account…" : "Please sign in to use this studio.");
       return;
     }
     if (balance < 1) {
@@ -142,7 +142,7 @@ export default function UkField5Page() {
               {generating ? (
                 <>Calculating…</>
               ) : balance == null ? (
-                "Loading account…"
+                balanceLoading ? "Loading account…" : "Sign in to generate"
               ) : balance < 1 ? (
                 "Insufficient credits"
               ) : (
