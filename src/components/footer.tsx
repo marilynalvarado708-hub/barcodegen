@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { LogoMark } from "@/components/logo";
 
 export function Footer() {
   return (
@@ -11,9 +12,7 @@ export function Footer() {
             href="/"
             className="flex items-center gap-2 font-bold text-foreground"
           >
-            <div className="h-6 w-6 rounded bg-primary flex items-center justify-center text-white font-bold text-xs">
-              BC
-            </div>
+            <LogoMark className="h-6 w-6" />
             BarcodeGen
           </Link>
           <p className="text-xs">

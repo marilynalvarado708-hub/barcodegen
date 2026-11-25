@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 40" role="img" aria-label="BarcodeGen">
+  <rect x="2" y="4" width="32" height="32" rx="7" fill="#2563eb"/>
+  <path fill="#fff" d="M9 12h2v16H9zm4 0h1v16h-1zm3 0h3v16h-3zm5 0h1v16h-1zm3 0h1.5v16H24zm3.5 0H29v16h-1.5z"/>
+  <text x="44" y="28" font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif" font-size="22" font-weight="700" fill="#0f172a">BarcodeGen</text>
+</svg>

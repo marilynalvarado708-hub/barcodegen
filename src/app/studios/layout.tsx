@@ -4,6 +4,7 @@ import Link from "next/link";
 import * as React from "react";
 import { IdCard, BookUser, QrCode, Barcode, LayoutDashboard, LogOut } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { LogoMark } from "@/components/logo";
 
 const studios = [
   { name: "AAMVA PDF417", href: "/studios/aamva", icon: IdCard },
@@ -31,7 +32,7 @@ export default function StudiosLayout({
       >
         <div className="flex h-12 items-center justify-between px-3 border-b border-border">
           <div className="flex items-center gap-2">
-            <div className="h-6 w-6 rounded bg-primary flex items-center justify-center text-white font-bold text-xs">BC</div>
+            <LogoMark className="h-6 w-6" />
             {!collapsed && <span className="font-bold text-sm">BarcodeGen</span>}
           </div>
           <button

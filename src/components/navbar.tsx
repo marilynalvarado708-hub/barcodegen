@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
+import { LogoMark } from "@/components/logo";
 import {
   Barcode,
   IdCard,
@@ -34,9 +35,7 @@ export function Navbar() {
     <nav className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-backdrop">
       <div className="flex items-center justify-between px-4 py-3 lg:px-6">
         <Link href="/" className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold text-xs tracking-tighter">
-            BC
-          </div>
+          <LogoMark className="h-8 w-8" />
           <span className="font-bold text-xl tracking-tight">BarcodeGen</span>
         </Link>
 
