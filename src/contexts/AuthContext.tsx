@@ -45,14 +45,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  // POST JSON and never throw: a network failure or a non-JSON error page
+  // (e.g. a crashed serverless function) becomes a normal error message.
+  const postJson = async (url: string, body: unknown): Promise<any> => {
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(body),
+      });
+      return await res.json();
+    } catch {
+      return { ok: false, error: "Something went wrong. Please try again." };
+    }
+  };
+
   const login = async (email: string, password: string) => {
-    const res = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ email, password }),
-    });
-    const data = await res.json();
+    const data = await postJson("/api/auth/login", { email, password });
     if (data.user) {
       setUser(data.user);
       router.refresh();
@@ -61,13 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const register = async (email: string, password: string, name: string) => {
-    const res = await fetch("/api/auth/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ email, password, name }),
-    });
-    const data = await res.json();
+    const data = await postJson("/api/auth/register", { email, password, name });
     if (data.user) {
       setUser(data.user);
       router.refresh();
@@ -76,7 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = async () => {
-    await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+    await fetch("/api/auth/logout", { method: "POST", credentials: "include" }).catch(() => {});
     setUser(null);
     router.refresh();
   };

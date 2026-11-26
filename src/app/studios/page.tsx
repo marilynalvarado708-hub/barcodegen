@@ -12,7 +12,7 @@ const studios = [
     description:
       "Standards-based AAMVA DL/ID PDF417 data formatting and barcode generation for synthetic testing and software development.",
     formats: "PDF417 • US/CA jurisdictions • DL & ID cards",
-    status: "Free",
+    status: "1 credit",
   },
   {
     name: "UK Driving Licence Field 5 Calculator",

@@ -19,8 +19,8 @@ export default function PrivacyPage() {
         education. No government-issued credential data is collected or stored.
       </p>
       <p className="mb-4">
-        To delete your account and all associated data, contact support or sign
-        out and remove the site&rsquo;s cookies.
+        To delete your account and all associated data, contact support.
+        Signing out only ends your session; it does not delete your account.
       </p>
       <p className="mt-8">
         <Link href="/" className="text-primary hover:underline">

@@ -126,8 +126,8 @@ export default function AamvaPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">AAMVA PDF417 Barcode Studio</h1>
         <p className="text-muted-foreground">
-          Builds an AAMVA DL/ID PDF417 data file (Annex D structure) from simple
-          input and encodes it as a real PDF417 barcode.
+          Builds the AAMVA DL/ID PDF417 data text (Annex D structure) from simple
+          input. Copy the text to encode it as a barcode.
         </p>
       </div>
 
