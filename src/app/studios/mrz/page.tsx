@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -10,7 +10,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Alert } from "@/components/ui/misc";
 import { Copy, RefreshCw, FileText } from "lucide-react";
 import { generateMRZ, type MrzFormat } from "@/lib/calc/mrz";
-import { fetchBalance, chargeCredit } from "@/lib/credits";
 
 const schema = z.object({
   format: z.enum(["TD1", "TD2", "TD3", "MRVA", "MRVB"]),
@@ -39,9 +38,6 @@ const FORMAT_LABELS: Record<MrzFormat, string> = {
 export default function MrzPage() {
   const [result, setResult] = useState<ReturnType<typeof generateMRZ> | null>(null);
   const [generating, setGenerating] = useState(false);
-  const [balance, setBalance] = useState<number | null>(null);
-  const [balanceLoading, setBalanceLoading] = useState(true);
-  const [creditError, setCreditError] = useState("");
   const methods = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -61,37 +57,11 @@ export default function MrzPage() {
   });
   const format = methods.watch("format");
 
-  useEffect(() => {
-    let mounted = true;
-    fetchBalance().then((b) => {
-      if (mounted) {
-        setBalance(b);
-        setBalanceLoading(false);
-      }
-    });
-    return () => { mounted = false; };
-  }, []);
-
-  const onSubmit = async (data: z.infer<typeof schema>) => {
-    setCreditError("");
-    if (balanceLoading || balance == null) {
-      setCreditError(balanceLoading ? "Loading your account…" : "Please sign in to use this studio.");
-      return;
-    }
-    if (balance < 1) {
-      setCreditError("Insufficient credits to generate.");
-      return;
-    }
+  // MRZ is free: no sign-in or credits needed.
+  const onSubmit = (data: z.infer<typeof schema>) => {
     setGenerating(true);
-    setTimeout(async () => {
+    setTimeout(() => {
       setResult(generateMRZ(data));
-      const charged = await chargeCredit("mrz", data.format);
-      if (!charged.ok) {
-        setCreditError(charged.error || "Credit charge failed");
-        setResult(null);
-      } else if (charged.balance != null) {
-        setBalance(charged.balance);
-      }
       setGenerating(false);
     }, 150);
   };
@@ -99,7 +69,6 @@ export default function MrzPage() {
   const reset = () => {
     methods.reset();
     setResult(null);
-    setCreditError("");
   };
 
   const handleCopy = () => {
@@ -205,13 +174,12 @@ export default function MrzPage() {
         </Card>
 
         <CardFooter className="pt-6">
-          {creditError && <Alert variant="destructive">{creditError}</Alert>}
           <Button
             type="submit"
-            disabled={generating || balance == null || balance < 1}
+            disabled={generating}
             className="w-full md:w-auto"
           >
-            {generating ? "Generating…" : balance == null ? (balanceLoading ? "Loading account…" : "Sign in to generate") : balance < 1 ? "Insufficient credits" : "Generate MRZ"}
+            {generating ? "Generating…" : "Generate MRZ"}
           </Button>
           <Button type="button" variant="outline" onClick={reset} disabled={!result}>
             <RefreshCw className="mr-2 h-4 w-4" /> Reset

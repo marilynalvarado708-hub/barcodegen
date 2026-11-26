@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -10,7 +10,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Alert } from "@/components/ui/misc";
 import { Copy, RefreshCw, FileText } from "lucide-react";
 import { calculateUkField5 } from "@/lib/calc/uk-field5";
-import { fetchBalance, chargeCredit } from "@/lib/credits";
 
 const schema = z.object({
   surname: z.string().min(1, "Surname is required"),
@@ -23,45 +22,16 @@ const schema = z.object({
 export default function UkField5Page() {
   const [result, setResult] = useState<ReturnType<typeof calculateUkField5> | null>(null);
   const [generating, setGenerating] = useState(false);
-  const [balance, setBalance] = useState<number | null>(null);
-  const [balanceLoading, setBalanceLoading] = useState(true);
-  const [creditError, setCreditError] = useState("");
   const methods = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
     defaultValues: { surname: "", firstName: "", middleName: "", dateOfBirth: "", gender: "M" },
   });
 
-  useEffect(() => {
-    let mounted = true;
-    fetchBalance().then((b) => {
-      if (mounted) {
-        setBalance(b);
-        setBalanceLoading(false);
-      }
-    });
-    return () => { mounted = false; };
-  }, []);
-
-  const onSubmit = async (data: z.infer<typeof schema>) => {
-    setCreditError("");
-    if (balanceLoading || balance == null) {
-      setCreditError(balanceLoading ? "Loading your account…" : "Please sign in to use this studio.");
-      return;
-    }
-    if (balance < 1) {
-      setCreditError("Insufficient credits to generate.");
-      return;
-    }
+  // UK Field 5 is free: no sign-in or credits needed.
+  const onSubmit = (data: z.infer<typeof schema>) => {
     setGenerating(true);
-    setTimeout(async () => {
+    setTimeout(() => {
       setResult(calculateUkField5(data));
-      const charged = await chargeCredit("uk-field5", "field5");
-      if (!charged.ok) {
-        setCreditError(charged.error || "Credit charge failed");
-        setResult(null);
-      } else if (charged.balance != null) {
-        setBalance(charged.balance);
-      }
       setGenerating(false);
     }, 150);
   };
@@ -69,7 +39,6 @@ export default function UkField5Page() {
   const reset = () => {
     methods.reset();
     setResult(null);
-    setCreditError("");
   };
 
   const handleCopy = () => {
@@ -88,9 +57,6 @@ export default function UkField5Page() {
           adjustment automatically.
         </p>
       </div>
-
-      {creditError && <Alert variant="destructive">{creditError}</Alert>}
-      {balanceLoading && <p className="text-sm text-muted-foreground">Loading your account…</p>}
 
       <form onSubmit={methods.handleSubmit(onSubmit)} className="space-y-4">
         <Card>
@@ -138,16 +104,8 @@ export default function UkField5Page() {
             </div>
           </CardContent>
           <CardFooter>
-            <Button type="submit" disabled={generating || balance == null || balance < 1}>
-              {generating ? (
-                <>Calculating…</>
-              ) : balance == null ? (
-                balanceLoading ? "Loading account…" : "Sign in to generate"
-              ) : balance < 1 ? (
-                "Insufficient credits"
-              ) : (
-                "Generate Field 5"
-              )}
+            <Button type="submit" disabled={generating}>
+              {generating ? <>Calculating…</> : "Generate Field 5"}
             </Button>
             <Button type="button" variant="outline" onClick={reset} disabled={!result}>
               <RefreshCw className="mr-2 h-4 w-4" /> Reset

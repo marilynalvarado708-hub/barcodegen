@@ -7,7 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert } from "@/components/ui/misc";
 import { Copy, Download, Wand2 } from "lucide-react";
 import { loadZint, zintGenerate, type ZintBundle } from "@/lib/zint-client";
-import { fetchBalance, chargeCredit } from "@/lib/credits";
 
 const DEFAULT_SYMBOLOGY = 58; // QR Code
 
@@ -35,24 +34,10 @@ export default function BarcodePage() {
   const [transparent, setTransparent] = useState(false);
   const [previewUrl, setPreviewUrl] = useState("");
   const [message, setMessage] = useState("");
-  const [balance, setBalance] = useState<number | null>(null);
-  const [balanceLoading, setBalanceLoading] = useState(true);
-  const [creditError, setCreditError] = useState("");
   const lastUrl = useRef("");
 
   useEffect(() => {
     loadZint().then(setZint).catch((e) => setLoadError(String(e?.message || e)));
-  }, []);
-
-  useEffect(() => {
-    let mounted = true;
-    fetchBalance().then((b) => {
-      if (mounted) {
-        setBalance(b);
-        setBalanceLoading(false);
-      }
-    });
-    return () => { mounted = false; };
   }, []);
 
   const sym = useMemo(
@@ -106,30 +91,16 @@ export default function BarcodePage() {
     }
   };
 
-  const save = async (type: "svg" | "png") => {
-    setCreditError("");
-    if (balanceLoading || balance == null) {
-      setCreditError(balanceLoading ? "Loading your account…" : "Please sign in to use this studio.");
-      return;
-    }
-    if (balance < 1) {
-      setCreditError("Insufficient credits to export.");
-      return;
-    }
+  // Barcode Suite is free: no sign-in or credits needed.
+  const save = (type: "svg" | "png") => {
     if (!zint) return;
     const r = zintGenerate(zint, { ...options, filetype: type });
     if (!r.ok || !r.bytes) {
       setMessage(r.message || "Export failed.");
       return;
     }
-    const charged = await chargeCredit("barcode", sym?.name ?? "barcode");
-    if (!charged.ok) {
-      setCreditError(charged.error || "Credit charge failed");
-      return;
-    }
     const slug = (sym?.name || "barcode").toLowerCase().replace(/[^a-z0-9]+/g, "-");
     download(r.bytes, type === "png" ? "image/png" : "image/svg+xml", `${slug}.${type}`);
-    if (charged.balance != null) setBalance(charged.balance);
   };
 
   const grouped = useMemo(() => {
@@ -251,15 +222,11 @@ export default function BarcodePage() {
               )}
             </div>
             {previewUrl && message && <p className="text-xs text-amber-600">{message}</p>}
-            {creditError && <Alert variant="destructive">{creditError}</Alert>}
-            {!balanceLoading && balance == null && (
-              <p className="text-xs text-muted-foreground">Sign in to download PNG or SVG.</p>
-            )}
             <div className="flex flex-wrap gap-2">
               <Button
                 type="button"
                 variant="outline"
-                disabled={!previewUrl || balance == null || balance < 1}
+                disabled={!previewUrl}
                 onClick={() => save("png")}
               >
                 <Download className="mr-2 h-4 w-4" /> PNG
@@ -267,7 +234,7 @@ export default function BarcodePage() {
               <Button
                 type="button"
                 variant="outline"
-                disabled={!previewUrl || balance == null || balance < 1}
+                disabled={!previewUrl}
                 onClick={() => save("svg")}
               >
                 <Download className="mr-2 h-4 w-4" /> SVG
